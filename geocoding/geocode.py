@@ -42,12 +42,15 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
             sheet.writeheader()
 
         geolocator = ArcGIS()
-        rows = pd.read_csv(data_dir / "resident_addr.csv").iterrows()
-        rows = [row for row in rows if row.address not in known_locations]
+        df = pd.read_csv(data_dir / "resident_addr.csv")
+        rows = filter(
+            lambda i_row: i_row[1].address not in known_locations,
+            df.iterrows(),
+        )
         for _, row in tqdm(rows):
             if norm(row.address) in known_locations:
                 continue
-            sleep(1.6)
+            sleep(1.1)
             addr = f"{row.address}, {row.city}, {row.st} {row.zip}"
             if location := geolocator.geocode(addr):
                 row = dict(row)

@@ -48,10 +48,11 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
             addr = f"{row.address}, {row.city}, {row.st} {row.zip}"
             if location := geolocator.geocode(addr):
                 row = dict(row)
-                row["address"] = norm(addr)
+                row["address"] = norm(row["address"])
                 row["lat"] = round(location.latitude, 5)
                 row["lon"] = round(location.longitude, 5)
                 sheet.writerow(row)
+                fout.flush()  # for benefit of tail -f
                 yield dict(row)
             else:
                 print(f"Could not geocode {addr}")

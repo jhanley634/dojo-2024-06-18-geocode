@@ -49,7 +49,7 @@ web_bench/data/timing.csv:
 	$(ACTIVATE) && bin/python.sh web_bench/client_speed_chart.py \
       --input-logfile=$(subst .csv,.txt,$@)
 
-geocoding/data/geocoded.csv:
+geocoding/data/geocoded.csv: geocoding/geocode.py
 	$(ACTIVATE) && bin/python.sh geocoding/geocode.py \
 	  --output-csv=$@
 

@@ -35,6 +35,14 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
 
     known_locations = _read_known_locations(output_csv)
 
+    def locations_to_lookup(i_row: tuple[int, pd.Series]) -> bool:
+        i, row = i_row
+        if i == 0:
+            return (
+                True  # always lookup at least one row, so we have a non-empty dataframe
+            )
+        return row.address not in known_locations  # Is it interesting? Then look it up.
+
     with open(output_csv, "a") as fout:
         fields = "address,city,st,zip,housenum,street,lat,lon"
         sheet = csv.DictWriter(fout, fieldnames=fields.split(","))
@@ -43,10 +51,7 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
 
         geolocator = ArcGIS()
         df = pd.read_csv(data_dir / "resident_addr.csv")
-        rows = filter(
-            lambda i_row: i_row[1].address not in known_locations,
-            df.iterrows(),
-        )
+        rows = filter(locations_to_lookup, df.iterrows())
         for _, row in tqdm(rows):
             if norm(row.address) in known_locations:
                 continue

@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 from geopy import ArcGIS
+from tqdm import tqdm
 
 data_dir = Path(__file__).parent / "data"
 geocoded_csv = data_dir / "geocoded.csv"
@@ -37,7 +38,8 @@ def geocode() -> Generator[dict[str, str | float], None, None]:
             sheet.writeheader()
 
         geolocator = ArcGIS()
-        for _, row in pd.read_csv(data_dir / "resident_addr.csv").iterrows():
+        rows = pd.read_csv(data_dir / "resident_addr.csv").iterrows()
+        for _, row in tqdm(rows):
             if norm(row.address) in known_locations:
                 continue
             addr = f"{row.address}, {row.city}, {row.st} {row.zip}"
@@ -48,7 +50,6 @@ def geocode() -> Generator[dict[str, str | float], None, None]:
                 row["lon"] = round(location.longitude, 5)
                 sheet.writerow(row)
                 fout.flush()
-                print(end=".", flush=True)
                 yield dict(row)
             else:
                 print(f"Could not geocode {addr}")

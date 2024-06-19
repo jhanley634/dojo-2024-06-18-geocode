@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # Copyright 2024 John Hanley. MIT licensed.
 import csv
+from collections.abc import Generator
 from pathlib import Path
 
 import pandas as pd
@@ -24,7 +25,7 @@ def _get_known_locations(geocoded_csv: Path) -> set[str]:
     return known_locations
 
 
-def geocode():
+def geocode() -> Generator[dict[str, str | float], None, None]:
     """Adds lat, lon columns to df."""
 
     known_locations = _get_known_locations(geocoded_csv)

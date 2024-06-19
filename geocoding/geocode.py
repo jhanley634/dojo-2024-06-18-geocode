@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 # Copyright 2024 John Hanley. MIT licensed.
 import csv
+import zlib
 from collections.abc import Generator
 from pathlib import Path
 from time import sleep
@@ -10,6 +11,21 @@ from geopy import ArcGIS
 from tqdm import tqdm
 
 data_dir = Path(__file__).parent / "data"
+
+
+def _unit_hash(s: str) -> float:
+    """Returns a value on the unit interval: [0, 1)."""
+    return zlib.crc32(s.encode()) / 2**32
+
+
+def sorted_subset(csv: Path, frac: float = 0.995) -> pd.DataFrame:
+    """Returns a subset of the csv, sorted by address."""
+    df = pd.read_csv(csv)
+    df = df.sort_values(["street", "housenum"])
+    df["hash"] = df.address.apply(_unit_hash)
+    df = df[df["hash"] < frac]
+    df = df.drop(columns=["hash"])
+    return df
 
 
 def norm(addr: str) -> str:
@@ -35,27 +51,26 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
 
     known_locations = _read_known_locations(output_csv)
 
-    def locations_to_lookup(i_row: tuple[int, pd.Series]) -> bool:
+    def _locations_to_lookup(i_row: tuple[int, pd.Series]) -> bool:
         i, row = i_row
         if i == 0:
-            return (
-                True  # always lookup at least one row, so we have a non-empty dataframe
-            )
+            # Always lookup at least one row, so we have a non-empty dataframe.
+            return True
         return row.address not in known_locations  # Is it interesting? Then look it up.
 
     with open(output_csv, "a") as fout:
         fields = "address,city,st,zip,housenum,street,lat,lon"
-        sheet = csv.DictWriter(fout, fieldnames=fields.split(","))
+        sheet = csv.DictWriter(fout, fieldnames=fields.split(","), lineterminator="\n")
         if len(known_locations) == 0:
             sheet.writeheader()
 
         geolocator = ArcGIS()
         df = pd.read_csv(data_dir / "resident_addr.csv")
-        rows = filter(locations_to_lookup, df.iterrows())
+        rows = filter(_locations_to_lookup, df.iterrows())
         for _, row in tqdm(rows):
             if norm(row.address) in known_locations:
                 continue
-            sleep(1.1)
+            sleep(1.2)
             addr = f"{row.address}, {row.city}, {row.st} {row.zip}"
             if location := geolocator.geocode(addr):
                 row = dict(row)
@@ -71,6 +86,12 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
 
 
 def main(output_csv: Path = data_dir / "geocoded.csv") -> None:
+
+    if output_csv.exists():
+        # Ensure that we always have at least a _little_ lookup work to do.
+        df = sorted_subset(output_csv)  # discards a handful of rows (9 rows)
+        df.to_csv(output_csv, index=False)
+
     df = pd.DataFrame(geocode(output_csv))
     print(df)
 

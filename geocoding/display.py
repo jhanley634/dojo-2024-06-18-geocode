@@ -3,7 +3,7 @@
 import pandas as pd
 import streamlit as st
 
-from geocode.geocode1 import geocoded_csv
+from geocoding.geocode import geocoded_csv
 
 
 def display(size=3):

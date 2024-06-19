@@ -3,6 +3,7 @@
 import csv
 from collections.abc import Generator
 from pathlib import Path
+from time import sleep
 
 import pandas as pd
 from geopy import ArcGIS
@@ -34,7 +35,7 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
 
     known_locations = _read_known_locations(output_csv)
 
-    with open(output_csv, "w") as fout:
+    with open(output_csv, "a") as fout:
         fields = "address,city,st,zip,housenum,street,lat,lon"
         sheet = csv.DictWriter(fout, fieldnames=fields.split(","))
         if len(known_locations) == 0:
@@ -42,12 +43,15 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
 
         geolocator = ArcGIS()
         rows = pd.read_csv(data_dir / "resident_addr.csv").iterrows()
+        rows = [row for row in rows if row.address not in known_locations]
         for _, row in tqdm(rows):
             if norm(row.address) in known_locations:
                 continue
+            sleep(1.6)
             addr = f"{row.address}, {row.city}, {row.st} {row.zip}"
             if location := geolocator.geocode(addr):
                 row = dict(row)
+                known_locations.add(norm(row["address"]))  # e.g. apt 3 + apt 4
                 row["address"] = norm(row["address"])
                 row["lat"] = round(location.latitude, 5)
                 row["lon"] = round(location.longitude, 5)

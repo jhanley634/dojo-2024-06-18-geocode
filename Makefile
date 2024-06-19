@@ -5,7 +5,9 @@ SHELL = bash -u -e -o pipefail
 VENV_DIR = $(HOME)/.venv/dojo-geocode
 ACTIVATE = source $(VENV_DIR)/bin/activate
 
-OUT = web_bench/data/timing.csv
+OUT = \
+ web_bench/data/timing.csv \
+ geocoding/data/geocoded.csv \
 
 all: venv libev lint $(OUT)
 
@@ -46,6 +48,10 @@ lint:
 web_bench/data/timing.csv:
 	$(ACTIVATE) && bin/python.sh web_bench/client_speed_chart.py \
       --input-logfile=$(subst .csv,.txt,$@)
+
+geocoding/data/geocoded.csv:
+	$(ACTIVATE) && bin/python.sh geocoding/geocode.py \
+	  --output-csv=$@
 
 clean:
 	rm -rf $(OUT)

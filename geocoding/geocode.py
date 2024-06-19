@@ -9,7 +9,6 @@ from geopy import ArcGIS
 from tqdm import tqdm
 
 data_dir = Path(__file__).parent / "data"
-geocoded_csv = data_dir / "geocoded.csv"
 
 
 def norm(addr: str) -> str:
@@ -17,21 +16,25 @@ def norm(addr: str) -> str:
     return addr.replace("'", "").upper().strip()
 
 
-def _get_known_locations(geocoded_csv: Path) -> set[str]:
-    known_locations = set()
-    with open(geocoded_csv) as fin:
-        sheet = csv.DictReader(fin)
-        for row in sheet:
-            known_locations.add(norm(row["address"]))
+def _read_known_locations(output_csv: Path) -> set[str]:
+    """Before we start appending to the output file, it helps to know what's already there."""
+    known_locations: set[str] = set()
+    if output_csv.exists():
+        with open(output_csv, "r") as fin:
+            sheet = csv.DictReader(fin)
+            for row in sheet:
+                # address = f"{norm(row["address"])}, {row["city"]} {row["st"]} {row["zip"]}"
+                # For now we take advantage of e.g. 10 Main St not being in multiple cities.
+                known_locations.add(norm(row["address"]))
     return known_locations
 
 
-def geocode() -> Generator[dict[str, str | float], None, None]:
+def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
     """Adds lat, lon columns to df."""
 
-    known_locations = _get_known_locations(geocoded_csv)
+    known_locations = _read_known_locations(output_csv)
 
-    with open(geocoded_csv, "w") as fout:
+    with open(output_csv, "w") as fout:
         fields = "address,city,st,zip,housenum,street,lat,lon"
         sheet = csv.DictWriter(fout, fieldnames=fields.split(","))
         if len(known_locations) == 0:
@@ -49,16 +52,14 @@ def geocode() -> Generator[dict[str, str | float], None, None]:
                 row["lat"] = round(location.latitude, 5)
                 row["lon"] = round(location.longitude, 5)
                 sheet.writerow(row)
-                fout.flush()
                 yield dict(row)
             else:
                 print(f"Could not geocode {addr}")
 
 
-def main() -> None:
-    df = pd.DataFrame(geocode())
+def main(output_csv: Path = data_dir / "geocoded.csv") -> None:
+    df = pd.DataFrame(geocode(output_csv))
     print(df)
-    df.to_csv(data_dir / "geocoded.csv", index=False)
 
 
 if __name__ == "__main__":

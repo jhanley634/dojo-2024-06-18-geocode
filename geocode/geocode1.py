@@ -5,11 +5,14 @@ from pathlib import Path
 
 import pandas as pd
 from geopy import ArcGIS
-from tqdm import tqdm
 
-assert tqdm
 data_dir = Path(__file__).parent / "data"
 geocoded_csv = data_dir / "geocoded.csv"
+
+
+def norm(addr: str) -> str:
+    """Normalize address, for comparisons."""
+    return addr.replace("'", "").upper().strip()
 
 
 def _get_known_locations(geocoded_csv: Path) -> set[str]:
@@ -17,7 +20,7 @@ def _get_known_locations(geocoded_csv: Path) -> set[str]:
     with open(geocoded_csv) as fin:
         sheet = csv.DictReader(fin)
         for row in sheet:
-            known_locations.add((row["address"]))
+            known_locations.add(norm(row["address"]))
     return known_locations
 
 
@@ -34,12 +37,12 @@ def geocode():
 
         geolocator = ArcGIS()
         for _, row in pd.read_csv(data_dir / "resident_addr.csv").iterrows():
-            if row.address in known_locations:
+            if norm(row.address) in known_locations:
                 continue
             addr = f"{row.address}, {row.city}, {row.st} {row.zip}"
-            location = geolocator.geocode(addr)
-            if location:
+            if location := geolocator.geocode(addr):
                 row = dict(row)
+                row["address"] = norm(addr)
                 row["lat"] = round(location.latitude, 5)
                 row["lon"] = round(location.longitude, 5)
                 sheet.writerow(row)

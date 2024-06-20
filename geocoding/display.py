@@ -3,12 +3,12 @@
 import pandas as pd
 import streamlit as st
 
-from .geocode import output_csv
+from geocode import data_dir
 
 
-def display(size: int = 3) -> None:
+def display(size: int = 2) -> None:
     st.title("Geocoded Addresses")
-    df = pd.read_csv(output_csv)
+    df = pd.read_csv(data_dir / "geocoded.csv")
     st.map(df, size=size)
 
 

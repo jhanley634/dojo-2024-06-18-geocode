@@ -26,6 +26,9 @@ $(VENV_DIR)/bin/activate: requirements.txt
 
 	$(ACTIVATE) && pip install -r requirements.txt
 
+install:
+	$(ACTIVATE) && pip install -r requirements.txt
+
 # The bjoern WSGI webserver depends on the libev event library.
 libev:
 	-which brew    &&      brew info libev || brew install libev

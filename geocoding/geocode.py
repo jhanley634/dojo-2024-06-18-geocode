@@ -1,5 +1,15 @@
 #! /usr/bin/env python
 # Copyright 2024 John Hanley. MIT licensed.
+"""
+Geocode residential addresses, appending lat, lon columns to a csv file.
+
+Consumes data/resident_addr.csv, produces geocoded.csv.
+
+We continuously append geocoded results to the output .CSV,
+so that we can CTRL/C and restart the process without losing any work.
+We deliberately discard less than 1% of results, based on address hash,
+so there's always at least a little work for the API client to do.
+"""
 import csv
 import zlib
 from collections.abc import Generator

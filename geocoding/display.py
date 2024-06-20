@@ -2,7 +2,6 @@
 # Copyright 2024 John Hanley. MIT licensed.
 import pandas as pd
 import streamlit as st
-
 from geocode import data_dir
 
 

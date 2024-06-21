@@ -51,7 +51,6 @@ def _read_known_locations(output_csv: Path) -> set[str]:
         with open(output_csv, "r") as fin:
             sheet = csv.DictReader(fin)
             for row in sheet:
-                # address = f"{norm(row["address"])}, {row["city"]} {row["st"]} {row["zip"]}"
                 # For now we take advantage of e.g. 10 Main St not being in multiple cities.
                 known_locations.add(norm(row["address"]))
     return known_locations
@@ -85,7 +84,7 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
             addr = f"{row.address}, {row.city}, {row.st} {row.zip}"
             if location := geolocator.geocode(addr):
                 row["zip"] = location.address.split()[-1]
-                int(row.zip)  # verify it's valid
+                assert int(row.zip) > 0
 
                 known_locations.add(norm(row.address))  # e.g. apt 3 + apt 4
                 row["address"] = norm(row.address)
@@ -94,7 +93,7 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
                 row = dict(row)
                 sheet.writerow(row)
                 fout.flush()  # for benefit of tail -f
-                yield dict(row)
+                yield row
             else:
                 print(f"Could not geocode {addr}")
 

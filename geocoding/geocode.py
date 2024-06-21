@@ -83,11 +83,14 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
             sleep(1.2)
             addr = f"{row.address}, {row.city}, {row.st} {row.zip}"
             if location := geolocator.geocode(addr):
-                row = dict(row)
-                known_locations.add(norm(row["address"]))  # e.g. apt 3 + apt 4
-                row["address"] = norm(row["address"])
+                row["zip"] = location.address.split()[-1]
+                int(row.zip)  # verify it's valid
+
+                known_locations.add(norm(row.address))  # e.g. apt 3 + apt 4
+                row["address"] = norm(row.address)
                 row["lat"] = round(location.latitude, 5)
                 row["lon"] = round(location.longitude, 5)
+                row = dict(row)
                 sheet.writerow(row)
                 fout.flush()  # for benefit of tail -f
                 yield dict(row)

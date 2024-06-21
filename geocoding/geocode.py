@@ -18,20 +18,17 @@ from time import sleep
 from typing import Any, Never, TypeGuard
 
 import pandas as pd
-from beartype import beartype
 from geopy import ArcGIS
 from tqdm import tqdm
 
 data_dir = Path(__file__).parent / "data"
 
 
-@beartype
 def _unit_hash(s: str) -> float:
     """Returns a value on the unit interval: [0, 1)."""
     return zlib.crc32(s.encode()) / 2**32
 
 
-@beartype
 def sorted_subset(in_csv: Path, frac: float = 0.999) -> pd.DataFrame:
     """Returns a subset of the csv, sorted by address."""
     df = pd.read_csv(in_csv)
@@ -42,13 +39,11 @@ def sorted_subset(in_csv: Path, frac: float = 0.999) -> pd.DataFrame:
     return df
 
 
-@beartype
 def norm(addr: str) -> str:
     """Normalize address, for comparisons."""
     return addr.replace("'", "").upper().strip()
 
 
-@beartype
 def _read_known_locations(output_csv: Path) -> set[str]:
     """Before we start appending to the output file, it helps to know what's already there."""
     known_locations: set[str] = set()
@@ -62,13 +57,11 @@ def _read_known_locations(output_csv: Path) -> set[str]:
     return known_locations
 
 
-@beartype
 def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
     """Adds lat, lon columns to df."""
 
     known_locations = _read_known_locations(output_csv)
 
-    @beartype
     def _locations_to_lookup(i_row: tuple[Hashable, Any]) -> TypeGuard[Never]:
         i, row = i_row
         if i == 0:
@@ -106,7 +99,6 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
                 print(f"Could not geocode {addr}")
 
 
-@beartype
 def main(output_csv: Path = data_dir / "geocoded.csv") -> None:
 
     if output_csv.exists():

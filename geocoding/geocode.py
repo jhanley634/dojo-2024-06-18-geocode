@@ -12,25 +12,29 @@ so there's always at least a little work for the API client to do.
 """
 import csv
 import zlib
-from collections.abc import Generator
+from collections.abc import Generator, Hashable
 from pathlib import Path
 from time import sleep
+from typing import Any, Never, TypeGuard
 
 import pandas as pd
+from beartype import beartype
 from geopy import ArcGIS
 from tqdm import tqdm
 
 data_dir = Path(__file__).parent / "data"
 
 
+@beartype
 def _unit_hash(s: str) -> float:
     """Returns a value on the unit interval: [0, 1)."""
     return zlib.crc32(s.encode()) / 2**32
 
 
-def sorted_subset(csv: Path, frac: float = 0.999) -> pd.DataFrame:
+@beartype
+def sorted_subset(in_csv: Path, frac: float = 0.999) -> pd.DataFrame:
     """Returns a subset of the csv, sorted by address."""
-    df = pd.read_csv(csv)
+    df = pd.read_csv(in_csv)
     df = df.sort_values(["street", "housenum"])
     df["hash"] = df.address.apply(_unit_hash)
     df = df[df["hash"] < frac]
@@ -38,11 +42,13 @@ def sorted_subset(csv: Path, frac: float = 0.999) -> pd.DataFrame:
     return df
 
 
+@beartype
 def norm(addr: str) -> str:
     """Normalize address, for comparisons."""
     return addr.replace("'", "").upper().strip()
 
 
+@beartype
 def _read_known_locations(output_csv: Path) -> set[str]:
     """Before we start appending to the output file, it helps to know what's already there."""
     known_locations: set[str] = set()
@@ -56,12 +62,14 @@ def _read_known_locations(output_csv: Path) -> set[str]:
     return known_locations
 
 
+@beartype
 def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
     """Adds lat, lon columns to df."""
 
     known_locations = _read_known_locations(output_csv)
 
-    def _locations_to_lookup(i_row: tuple[int, pd.Series]) -> bool:
+    @beartype
+    def _locations_to_lookup(i_row: tuple[Hashable, Any]) -> TypeGuard[Never]:
         i, row = i_row
         if i == 0:
             # Always lookup at least one row, so we have a non-empty dataframe.
@@ -76,7 +84,7 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
 
         geolocator = ArcGIS()
         df = pd.read_csv(data_dir / "resident_addr.csv")
-        rows = filter(_locations_to_lookup, df.iterrows())
+        rows: list[pd.Series[Any]] = list(filter(_locations_to_lookup, df.iterrows()))
         for _, row in tqdm(rows):
             if norm(row.address) in known_locations:
                 continue
@@ -98,6 +106,7 @@ def geocode(output_csv: Path) -> Generator[dict[str, str | float], None, None]:
                 print(f"Could not geocode {addr}")
 
 
+@beartype
 def main(output_csv: Path = data_dir / "geocoded.csv") -> None:
 
     if output_csv.exists():

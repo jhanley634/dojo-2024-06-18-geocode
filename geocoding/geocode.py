@@ -28,7 +28,7 @@ def _unit_hash(s: str) -> float:
     return zlib.crc32(s.encode()) / 2**32
 
 
-def sorted_subset(csv: Path, frac: float = 0.995) -> pd.DataFrame:
+def sorted_subset(csv: Path, frac: float = 0.999) -> pd.DataFrame:
     """Returns a subset of the csv, sorted by address."""
     df = pd.read_csv(csv)
     df = df.sort_values(["street", "housenum"])

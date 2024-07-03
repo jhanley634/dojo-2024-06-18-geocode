@@ -25,12 +25,14 @@ app = Flask(__name__)
 
 @app.route("/")  # type: ignore [misc]
 def index() -> str:
-    return prettify(
-        title("map of San Mateo") + "<div style='font-size: 2em; margin: 3em;'>"
-        "<hr><p>hello world</p><hr>"
-        "<li><a href='/filtered_map/All'>All</a>"
-        "<li><a href='/filtered_map/Menalto'>Menalto Ave</a>"
-        "<li><a href='/filtered_map/Oconnor'>O'Connor St</a>"
+    return str(
+        prettify(
+            title("map of San Mateo") + "<div style='font-size: 2em; margin: 3em;'>"
+            "<hr><p>hello world</p><hr>"
+            "<li><a href='/filtered_map/All'>All</a>"
+            "<li><a href='/filtered_map/Menalto'>Menalto Ave</a>"
+            "<li><a href='/filtered_map/Oconnor'>O'Connor St</a>"
+        )
     )
 
 
@@ -56,7 +58,7 @@ def filtered_map(street: str) -> tuple[bytes, int, dict[str, str]]:
     return san_mateo_png.read_bytes(), 200, content_png
 
 
-def speed_test(street="Oconnor") -> None:
+def speed_test(street: str = "Oconnor") -> None:
     """Contrasts the speed of .iterrows() vs vectorized .str.contains()."""
     df = pd.DataFrame(_get_rows(Basemap()))
     t0 = time()

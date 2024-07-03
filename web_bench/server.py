@@ -78,7 +78,7 @@ odio ut enim blandit volutpat.
 app = Flask(__name__)
 
 
-@app.route("/")
+@app.route("/")  # type:ignore [misc]
 def hello_world() -> str:
     sleep(1e-6)
     return "Hello world!\n" + five_paragraphs

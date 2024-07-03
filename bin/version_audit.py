@@ -35,7 +35,7 @@ def _get_frozen_versions() -> Generator[Package, None, None]:
             yield Package(m[1], m[2])
 
 
-def version_audit(reqs_in_file: Path = Path("requirements.txt")):
+def version_audit(reqs_in_file: Path = Path("requirements.txt")) -> None:
     """
     Compare `pip freeze` against requirements.txt, reporting any discrepancies.
     """

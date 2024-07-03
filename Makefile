@@ -45,9 +45,10 @@ ab:
 	@printf '\n\n\n'
 	time ab -c 6 -n 10000 $(URL)
 
+STRICT = --strict --warn-unreachable --ignore-missing-imports --no-namespace-packages
 lint:
 	$(ACTIVATE) && black . && isort . && ruff check .
-	$(ACTIVATE) && mypy --strict --warn-unreachable --ignore-missing-imports .
+	$(ACTIVATE) && mypy $(STRICT) .
 
 web_bench/data/timing.csv:
 	$(ACTIVATE) && bin/python.sh web_bench/client_speed_chart.py \

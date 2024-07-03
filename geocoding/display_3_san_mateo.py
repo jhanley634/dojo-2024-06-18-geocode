@@ -15,7 +15,7 @@ from geocoding.display_2_bay_area import get_residences
 temp = Path("/tmp")
 san_mateo_png = temp / "san_mateo.png"
 scale_loc = -122.1425, 37.452
-light_brown = "#E7B36A"
+light_brown = "#EDC791"
 
 
 def get_san_mateo_basemap() -> Basemap:

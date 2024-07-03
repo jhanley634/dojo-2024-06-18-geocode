@@ -64,6 +64,7 @@ def speed_test(street: str = "Oconnor") -> None:
     t0 = time()
 
     # addrs = [row.addr for _, row in df.iterrows() if street in row.addr]
+    # addrs = [row.addr for row in df.itertuples() if street in row.addr]  # 20x faster
     addrs = df[df.addr.str.contains(street)]  # 70x faster
 
     elapsed = time() - t0

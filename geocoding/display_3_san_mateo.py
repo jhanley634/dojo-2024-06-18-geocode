@@ -18,8 +18,8 @@ scale_loc = -122.1425, 37.452
 light_brown = "#E7B36A"
 
 
-def display_filtered_san_mateo_map() -> None:
-    m = Basemap(
+def get_san_mateo_basemap() -> Basemap:
+    return Basemap(
         projection="merc",
         urcrnrlat=37.48,
         llcrnrlat=37.45,
@@ -28,6 +28,10 @@ def display_filtered_san_mateo_map() -> None:
         urcrnrlon=-122.12,
         resolution="i",
     )
+
+
+def display_filtered_san_mateo_map() -> None:
+    m = get_san_mateo_basemap()
     m.fillcontinents(color=light_brown, lake_color="aqua")
     m.drawcounties()
     m.drawmapscale(*scale_loc, *scale_loc, 2, barstyle="fancy")

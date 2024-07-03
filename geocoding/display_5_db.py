@@ -3,11 +3,13 @@
 """
 Display a web page map of residences in southern San Mateo County.
 """
+from time import time
+
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
-from bs4 import BeautifulSoup
 from flask import Flask
+from mpl_toolkits.basemap import Basemap
 
 from geocoding.display_3_san_mateo import (
     _get_rows,
@@ -15,6 +17,7 @@ from geocoding.display_3_san_mateo import (
     light_brown,
     san_mateo_png,
 )
+from geocoding.display_4_filter import content_png, prettify, title
 
 matplotlib.use("agg")  # headless
 app = Flask(__name__)
@@ -25,19 +28,10 @@ def index() -> str:
     return prettify(
         title("map of San Mateo") + "<div style='font-size: 2em; margin: 3em;'>"
         "<hr><p>hello world</p><hr>"
-        "<ul><li><a href='/cached_map'>San Mateo Map</a>"
         "<li><a href='/filtered_map/All'>All</a>"
         "<li><a href='/filtered_map/Menalto'>Menalto Ave</a>"
         "<li><a href='/filtered_map/Oconnor'>O'Connor St</a>"
     )
-
-
-content_png = {"Content-Type": "image/png"}
-
-
-@app.route("/cached_map")  # type: ignore [misc]
-def cached_map() -> tuple[bytes, int, dict[str, str]]:
-    return san_mateo_png.read_bytes(), 200, content_png
 
 
 @app.route("/filtered_map/<street>")  # type: ignore [misc]
@@ -50,6 +44,7 @@ def filtered_map(street: str) -> tuple[bytes, int, dict[str, str]]:
     plt.title("San Mateo")
 
     df = pd.DataFrame(_get_rows(m))
+    df = df[df.addr.str.contains(street)]
     for _, row in df.iterrows():
         if street in row.addr:
             m.plot(row.x, row.y, "bo", markersize=3)
@@ -61,14 +56,19 @@ def filtered_map(street: str) -> tuple[bytes, int, dict[str, str]]:
     return san_mateo_png.read_bytes(), 200, content_png
 
 
-def title(text: str) -> str:
-    return f"<!DOCTYPE html><html lang='en'><head><title>{text}</head><body>"
+def speed_test(street="Oconnor") -> None:
+    """Contrasts the speed of .iterrows() vs vectorized .str.contains()."""
+    df = pd.DataFrame(_get_rows(Basemap()))
+    t0 = time()
 
+    # addrs = [row.addr for _, row in df.iterrows() if street in row.addr]
+    addrs = df[df.addr.str.contains(street)]  # 70x faster
 
-def prettify(html: str) -> str:
-    soup = BeautifulSoup(html, "html.parser")
-    return soup.prettify(formatter="html5")
+    elapsed = time() - t0
+    print(round(elapsed, 3))
+    assert 3639 == len(df), len(df)
+    assert 118 == len(addrs), len(addrs)
 
 
 if __name__ == "__main__":
-    app.run()
+    speed_test()

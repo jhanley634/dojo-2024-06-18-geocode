@@ -4,6 +4,7 @@
 Produces a .PNG map of residences in southern San Mateo County.
 """
 from collections.abc import Generator
+from functools import cache
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -18,6 +19,7 @@ scale_loc = -122.1425, 37.452
 light_brown = "#EDC791"
 
 
+@cache
 def get_san_mateo_basemap() -> Basemap:
     return Basemap(
         projection="merc",

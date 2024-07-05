@@ -3,12 +3,16 @@
 """
 Display a web page map of residences in southern San Mateo County.
 """
+from functools import cache
 from time import time
+from typing import Any
 
 import matplotlib
 import matplotlib.pyplot as plt
+import numpy.typing as npt
 import pandas as pd
 from flask import Flask
+from linetimer import linetimer
 from mpl_toolkits.basemap import Basemap
 
 from geocoding.display_3_san_mateo import (
@@ -16,10 +20,12 @@ from geocoding.display_3_san_mateo import (
     get_san_mateo_basemap,
     light_brown,
     san_mateo_png,
+    temp,
 )
-from geocoding.display_4_filter import content_png, prettify, title
+from geocoding.display_4_filter import _get_df, content_png, prettify, title
 
 matplotlib.use("agg")  # headless
+background_png = temp / "san_mateo_background.png"
 app = Flask(__name__)
 
 
@@ -36,16 +42,30 @@ def index() -> str:
     )
 
 
+@cache
+def _get_background_image() -> npt.NDArray[Any]:
+    if not background_png.exists():
+        m = get_san_mateo_basemap()
+        m.fillcontinents(color=light_brown, lake_color="aqua")
+        plt.title("San Mateo")
+        plt.close()
+        r = plt.savefig(background_png)
+        print(r, type(r))
+    return plt.imread(background_png)
+
+
 @app.route("/filtered_map/<street>")  # type: ignore [misc]
+@linetimer()
 def filtered_map(street: str) -> tuple[bytes, int, dict[str, str]]:
     street = street.title()
     if street == "All":
         street = ""  # empty string is in all addresses
-    m = get_san_mateo_basemap()
-    m.fillcontinents(color=light_brown, lake_color="aqua")
     plt.title("San Mateo")
+    fig, ax = plt.subplots()
+    ax.imshow(_get_background_image())
+    m = get_san_mateo_basemap()
 
-    df = pd.DataFrame(_get_rows(m))
+    df = _get_df()
     df = df[df.addr.str.contains(street)]
     for _, row in df.iterrows():
         if street in row.addr:
@@ -74,4 +94,4 @@ def speed_test(street: str = "Oconnor") -> None:
 
 
 if __name__ == "__main__":
-    speed_test()
+    app.run()

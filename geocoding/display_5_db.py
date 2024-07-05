@@ -62,17 +62,26 @@ def filtered_map(street: str) -> tuple[bytes, int, dict[str, str]]:
         street = ""  # empty string is in all addresses
     plt.title("San Mateo")
     fig, ax = plt.subplots()
-    ax.imshow(_get_background_image())
+    img = _get_background_image()
+    w, h, _ = img.shape
+    ax.imshow(img, extent=[0, w, 0, h])
     m = get_san_mateo_basemap()
 
     df = _get_df()
     df = df[df.addr.str.contains(street)]
-    for _, row in df.iterrows():
+    coords = []
+    for row in df.itertuples():
         if street in row.addr:
-            m.plot(row.x, row.y, "bo", markersize=3)
-        else:
-            m.plot(row.x, row.y, "k.", markersize=1)
+            coords.append((row.x, row.y))
+        # else:
+        #     m.plot(row.x, row.y, "k.", markersize=1)
 
+    m.plot(
+        [x for x, _ in coords],
+        [y for _, y in coords],
+        "bo",
+        markersize=3,
+    )
     plt.savefig(san_mateo_png)
     plt.close()
     return san_mateo_png.read_bytes(), 200, content_png

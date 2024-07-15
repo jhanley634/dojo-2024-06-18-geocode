@@ -3,16 +3,16 @@
 """
 Display a web page map of residences in southern San Mateo County.
 """
+import pickle
 from functools import cache
 from time import time
-from typing import Any
 
 import matplotlib
 import matplotlib.pyplot as plt
-import numpy.typing as npt
 import pandas as pd
 from flask import Flask
-from linetimer import linetimer
+from matplotlib.axes._axes import Axes
+from matplotlib.figure import Figure
 from mpl_toolkits.basemap import Basemap
 
 from geocoding.display_3_san_mateo import (
@@ -26,6 +26,7 @@ from geocoding.display_4_filter import _get_df, content_png, prettify, title
 
 matplotlib.use("agg")  # headless
 background_png = temp / "san_mateo_background.png"
+pickled_bg = temp / "san_mateo_background.pkl"
 app = Flask(__name__)
 
 
@@ -43,29 +44,39 @@ def index() -> str:
 
 
 @cache
-def _get_background_image() -> npt.NDArray[Any]:
-    if not background_png.exists():
+def _get_background_image() -> tuple[Figure, Axes]:
+    pickled_bg.unlink(missing_ok=True)
+    if not pickled_bg.exists():
         m = get_san_mateo_basemap()
         m.fillcontinents(color=light_brown, lake_color="aqua")
-        plt.title("San Mateo")
-        plt.close()
-        r = plt.savefig(background_png)
-        print(r, type(r))
-    return plt.imread(background_png)
+        for row in _get_df().itertuples():
+            m.plot(row.x, row.y, "k.", markersize=1)
+        plt.savefig(background_png)
+        fig, ax = plt.subplots()
+        assert isinstance(fig, Figure)
+        assert isinstance(ax, Axes)
+        # plt.close()
+        with open(pickled_bg, "wb") as fout:
+            pickle.dump((fig, ax), fout)
+
+    with open(pickled_bg, "rb") as fin:
+        fig, ax = pickle.load(fin)
+        assert isinstance(fig, Figure)
+        assert isinstance(ax, Axes)
+        return fig, ax
 
 
 @app.route("/filtered_map/<street>")  # type: ignore [misc]
-@linetimer()
 def filtered_map(street: str) -> tuple[bytes, int, dict[str, str]]:
     street = street.title()
     if street == "All":
         street = ""  # empty string is in all addresses
-    plt.title("San Mateo")
-    fig, ax = plt.subplots()
-    img = _get_background_image()
-    w, h, _ = img.shape
-    ax.imshow(img, extent=[0, w, 0, h])
+    fig, ax = _get_background_image()
+    ax.set_title("San Mateo")
     m = get_san_mateo_basemap()
+    print(ax.get_xlim(), ax.get_ylim())
+    xs = range(400)
+    ax.plot(xs, xs, "--", linewidth=5, color="firebrick")
 
     df = _get_df()
     df = df[df.addr.str.contains(street)]
@@ -73,8 +84,6 @@ def filtered_map(street: str) -> tuple[bytes, int, dict[str, str]]:
     for row in df.itertuples():
         if street in row.addr:
             coords.append((row.x, row.y))
-        # else:
-        #     m.plot(row.x, row.y, "k.", markersize=1)
 
     m.plot(
         [x for x, _ in coords],

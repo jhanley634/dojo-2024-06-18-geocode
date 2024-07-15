@@ -62,6 +62,7 @@ def filtered_map(street: str) -> tuple[bytes, int, dict[str, str]]:
     ys = []
     t0 = time()
     for row in df.itertuples():
+        assert isinstance(row.addr, str)
         if street in row.addr:
             xs.append(row.x)
             ys.append(row.y)
